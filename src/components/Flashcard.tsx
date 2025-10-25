@@ -35,14 +35,16 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
     
     const isAnswerCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase();
     setIsCorrect(isAnswerCorrect);
-    setShowAnswer(true);
-    setShowResult(true);
     
-    // Puan hesaplama
+    // Sadece doğru cevap verildiğinde sonucu göster
     if (isAnswerCorrect) {
+      setShowAnswer(true);
+      setShowResult(true);
       setScore(100);
     } else {
+      // Yanlış cevap verildiğinde sadece puanı sıfırla ve sonraki karta geç
       setScore(0);
+      onAnswer(word.id, false, userAnswer);
     }
   };
 
@@ -50,6 +52,9 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
     setShowAnswer(true);
     setShowResult(true);
     setScore(0);
+    setIsCorrect(false); // Bilmiyorum = boş olarak işaretle
+    // Boş cevap olarak işaretle (yanlış değil)
+    onAnswer(word.id, false, ''); // Boş string = bilmiyorum
   };
 
   const handleNext = () => {

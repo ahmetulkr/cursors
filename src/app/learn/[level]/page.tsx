@@ -20,14 +20,19 @@ export default function LearnPage() {
   const level = params.level as string;
 
   const [allWords, setAllWords] = useState<Word[]>([]);
+  const [words, setWords] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctWords, setCorrectWords] = useState<Word[]>([]);
   const [incorrectWords, setIncorrectWords] = useState<Word[]>([]);
   const [retryWords, setRetryWords] = useState<Word[]>([]);
+  const [retryCorrectWords, setRetryCorrectWords] = useState<Word[]>([]);
+  const [skipWords, setSkipWords] = useState<Word[]>([]); // Bilmiyorum kelimeleri
   const [loading, setLoading] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
   const [currentScore, setCurrentScore] = useState(0);
+  const [isRetryMode, setIsRetryMode] = useState(false);
+  const [initialIncorrectCount, setInitialIncorrectCount] = useState(0);
 
   useEffect(() => {
     const fetchWords = async () => {
@@ -38,6 +43,7 @@ export default function LearnPage() {
         }
         const data = await response.json();
         setAllWords(data);
+        setWords(data);
         setLoading(false);
       } catch (error) {
         console.error('Kelimeler yüklenirken hata:', error);
@@ -59,10 +65,26 @@ export default function LearnPage() {
 
     // Kelimeleri kategorilere ayır
     if (isCorrect) {
-      setCorrectWords([...correctWords, word]);
+      if (isRetryMode) {
+        setRetryCorrectWords([...retryCorrectWords, word]);
+      } else {
+        setCorrectWords([...correctWords, word]);
+      }
+      // Doğru cevaplanan kelimeyi diğer listelerden çıkar
+      setIncorrectWords(prev => prev.filter(w => w.id !== word.id));
+      setSkipWords(prev => prev.filter(w => w.id !== word.id));
     } else {
-      setIncorrectWords([...incorrectWords, word]);
-      setRetryWords([...retryWords, word]);
+      // Yanlış cevap veya bilmiyorum
+      if (userAnswer === '') {
+        // Bilmiyorum butonuna basıldı
+        setSkipWords([...skipWords, word]);
+      } else {
+        // Yanlış cevap verildi
+        setIncorrectWords([...incorrectWords, word]);
+        if (!isRetryMode) {
+          setRetryWords([...retryWords, word]);
+        }
+      }
     }
 
     // Progress kaydet
@@ -79,24 +101,10 @@ export default function LearnPage() {
     }
 
     // Sonraki karta geç
-    const nextIndex = currentIndex + 1;
-    
-    // Tekrar modunda tüm kartlar biterse veya normal modda son kart ise
-    if (isRetryMode && incorrectWords.length === 0) {
-      setIsComplete(true);
-    } else if (nextIndex < words.length) {
-      setCurrentIndex(nextIndex);
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex(currentIndex + 1);
     } else {
-      // Eğer yanlış kelimeler varsa tekrar et
-      if (retryWords.length > 0) {
-        setWords([...retryWords]);
-        setRetryWords([]);
-        setCurrentIndex(0);
-        setCorrectWords([]);
-        setIncorrectWords([]);
-      } else {
-        setIsComplete(true);
-      }
+      handleRoundComplete();
     }
   };
 
@@ -104,18 +112,53 @@ export default function LearnPage() {
     const word = words.find(w => w.id === wordId);
     if (!word) return;
 
-    setRetryWords([...retryWords, word]);
+    // Bilmiyorum kelimelerini ayrı takip et
+    setSkipWords([...skipWords, word]);
     
     // Sonraki karta geç
     if (currentIndex < words.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      if (retryWords.length > 0) {
-        setWords([...retryWords]);
-        setRetryWords([]);
+      handleRoundComplete();
+    }
+  };
+
+  const handleRoundComplete = () => {
+    if (isRetryMode) {
+      // Tekrar turu bitti, hala yanlış veya bilmiyorum kelimeler var mı kontrol et
+      const stillIncorrect = incorrectWords.filter(word => 
+        !correctWords.some(correct => correct.id === word.id) &&
+        !retryCorrectWords.some(correct => correct.id === word.id)
+      );
+      const stillSkipped = skipWords.filter(word => 
+        !correctWords.some(correct => correct.id === word.id) &&
+        !retryCorrectWords.some(correct => correct.id === word.id)
+      );
+      
+      if (stillIncorrect.length > 0 || stillSkipped.length > 0) {
+        // Hala yanlış veya bilmiyorum kelimeler var, tekrar et
+        const wordsToRetry = [...stillIncorrect, ...stillSkipped];
+        setWords([...wordsToRetry]);
         setCurrentIndex(0);
         setCorrectWords([]);
         setIncorrectWords([]);
+        setRetryWords([]);
+        setSkipWords([]);
+      } else {
+        // Tüm kelimeler doğru cevaplandı
+        setIsComplete(true);
+      }
+    } else {
+      // İlk tur bitti, tekrar edilecek kelimeleri belirle
+      const wordsToRetry = [...retryWords, ...skipWords];
+      if (wordsToRetry.length > 0) {
+        setWords([...wordsToRetry]);
+        setRetryWords([]);
+        setSkipWords([]);
+        setCurrentIndex(0);
+        setCorrectWords([]);
+        setIncorrectWords([]);
+        setIsRetryMode(true);
       } else {
         setIsComplete(true);
       }
@@ -127,12 +170,14 @@ export default function LearnPage() {
     setCorrectWords([]);
     setIncorrectWords([]);
     setRetryWords([]);
+    setRetryCorrectWords([]);
+    setSkipWords([]);
     setTotalScore(0);
     setCurrentScore(0);
     setIsComplete(false);
     setIsRetryMode(false);
-    setRetryCorrectWords([]);
     setInitialIncorrectCount(0);
+    setWords(allWords);
   };
 
   const handleRetryIncorrect = () => {
@@ -147,6 +192,24 @@ export default function LearnPage() {
 
   const handleBackToHome = () => {
     router.push('/');
+  };
+
+  const getNextLevel = (currentLevel: string) => {
+    switch (currentLevel.toUpperCase()) {
+      case 'A1': return 'A2';
+      case 'A2': return 'B1';
+      case 'B1': return null; // Son seviye
+      default: return null;
+    }
+  };
+
+  const handleNextLevel = () => {
+    const nextLevel = getNextLevel(level);
+    if (nextLevel) {
+      router.push(`/learn/${nextLevel}`);
+    } else {
+      router.push('/');
+    }
   };
 
   if (loading) {
@@ -177,9 +240,13 @@ export default function LearnPage() {
   }
 
   if (isComplete) {
-    const correctPercentage = Math.round((correctWords.length / words.length) * 100);
-    const maxScore = words.length * 100;
+    const totalCorrect = isRetryMode ? retryCorrectWords.length : correctWords.length;
+    const totalWords = allWords.length;
+    const correctPercentage = Math.round((totalCorrect / totalWords) * 100);
+    const maxScore = totalWords * 100;
     const scorePercentage = Math.round((totalScore / maxScore) * 100);
+    const nextLevel = getNextLevel(level);
+    const isPerfectScore = correctPercentage === 100;
     
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
@@ -188,18 +255,21 @@ export default function LearnPage() {
           animate={{ scale: 1, opacity: 1 }}
           className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center"
         >
-          <div className="text-6xl mb-6">🎉</div>
+          <div className="text-6xl mb-6">{isPerfectScore ? '🏆' : '🎉'}</div>
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Tebrikler!
+            {isPerfectScore ? 'Mükemmel!' : 'Tebrikler!'}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-            {level.toUpperCase()} seviyesini tamamladınız!
+            {isPerfectScore 
+              ? `${level.toUpperCase()} seviyesini başarıyla tamamladınız!`
+              : `${level.toUpperCase()} seviyesini tamamladınız!`
+            }
           </p>
 
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {correctWords.length}
+                {totalCorrect}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Doğru</div>
             </div>
@@ -231,7 +301,37 @@ export default function LearnPage() {
             <div className="text-sm text-gray-600 dark:text-gray-400">Puan Oranı</div>
           </div>
 
+          {isPerfectScore && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+              <div className="text-sm text-green-600 dark:text-green-400 mb-2">
+                🎯 Tüm kelimeleri doğru cevapladınız!
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Bu seviyeyi mükemmel bir şekilde tamamladınız
+              </div>
+            </div>
+          )}
+
+          {!isPerfectScore && (incorrectWords.length > 0 || skipWords.length > 0) && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+              <div className="text-sm text-red-600 dark:text-red-400 mb-2">
+                Tekrar Çalışılması Gereken Kelimeler ({incorrectWords.length + skipWords.length})
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Bu kelimeleri tekrar çalışmanız önerilir
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-4">
+            {nextLevel && (
+              <button
+                onClick={handleNextLevel}
+                className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                {nextLevel} Seviyesine Geç
+              </button>
+            )}
             <button
               onClick={handleRestart}
               className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
