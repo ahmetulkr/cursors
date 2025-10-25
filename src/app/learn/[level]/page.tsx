@@ -19,7 +19,7 @@ export default function LearnPage() {
   const router = useRouter();
   const level = params.level as string;
 
-  const [words, setWords] = useState<Word[]>([]);
+  const [allWords, setAllWords] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctWords, setCorrectWords] = useState<Word[]>([]);
   const [incorrectWords, setIncorrectWords] = useState<Word[]>([]);
@@ -29,6 +29,9 @@ export default function LearnPage() {
   const [retryCorrectWords, setRetryCorrectWords] = useState<Word[]>([]);
   const [initialIncorrectCount, setInitialIncorrectCount] = useState(0);
 
+  // Aktif kartlar: Normal modda tüm kelimeler, tekrar modunda sadece yanlışlar
+  const words = isRetryMode ? incorrectWords : allWords;
+
   useEffect(() => {
     const fetchWords = async () => {
       try {
@@ -37,7 +40,7 @@ export default function LearnPage() {
           throw new Error('Kelimeler yüklenemedi');
         }
         const data = await response.json();
-        setWords(data);
+        setAllWords(data);
         setLoading(false);
       } catch (error) {
         console.error('Kelimeler yüklenirken hata:', error);
@@ -105,7 +108,6 @@ export default function LearnPage() {
   const handleRetryIncorrect = () => {
     // Yanlış kartları tekrar göster
     setInitialIncorrectCount(incorrectWords.length);
-    setWords(incorrectWords);
     setCurrentIndex(0);
     setIsComplete(false);
     setIsRetryMode(true);
@@ -127,7 +129,7 @@ export default function LearnPage() {
     );
   }
 
-  if (words.length === 0) {
+  if (allWords.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
         <div className="text-center">
@@ -217,7 +219,7 @@ export default function LearnPage() {
     }
 
     // Normal mod tamamlandı
-    const correctPercentage = Math.round((correctWords.length / words.length) * 100);
+    const correctPercentage = Math.round((correctWords.length / allWords.length) * 100);
     
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
