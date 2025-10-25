@@ -154,8 +154,29 @@ export default function LearnPage() {
   };
 
   const handleRoundComplete = () => {
-    // Yanlış ve bilmiyorum kelimelerini topla
-    const wordsToRetry = [...new Set([...incorrectWords, ...skipWords])];
+    // Bilmiyorum kelimeleri ÖNE çıkmalı, sonra yanlış kelimeler
+    const skipWordsArray = Array.from(skipWords);
+    const incorrectWordsArray = Array.from(incorrectWords);
+    
+    // Duplikatları temizle (bir kelime hem skipWords hem incorrectWords'te olabilir)
+    const seenIds = new Set<number>();
+    const wordsToRetry: Word[] = [];
+    
+    // Bilmiyorum kelimeleri önce ekle (ÖNE)
+    for (const word of skipWordsArray) {
+      if (!seenIds.has(word.id)) {
+        wordsToRetry.push(word);
+        seenIds.add(word.id);
+      }
+    }
+    
+    // Yanlış kelimeleri sonra ekle
+    for (const word of incorrectWordsArray) {
+      if (!seenIds.has(word.id)) {
+        wordsToRetry.push(word);
+        seenIds.add(word.id);
+      }
+    }
     
     if (wordsToRetry.length > 0) {
       // Hala yanlış veya bilmiyorum kelimeler var, tekrar göster
