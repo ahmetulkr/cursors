@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Flashcard from '@/components/Flashcard';
 import ProgressBar from '@/components/ProgressBar';
@@ -30,7 +30,11 @@ export default function LearnPage() {
   const [initialIncorrectCount, setInitialIncorrectCount] = useState(0);
 
   // Aktif kartlar: Normal modda tüm kelimeler, tekrar modunda sadece yanlışlar
-  const words = isRetryMode ? incorrectWords : allWords;
+  const words = useMemo(() => {
+    const result = isRetryMode ? incorrectWords : allWords;
+    console.log('Words hesaplandı. Mod:', isRetryMode ? 'TEKRAR' : 'NORMAL', 'Kart sayısı:', result.length);
+    return result;
+  }, [isRetryMode, incorrectWords, allWords]);
 
   useEffect(() => {
     const fetchWords = async () => {
@@ -88,8 +92,13 @@ export default function LearnPage() {
     }
 
     // Sonraki karta geç
-    if (currentIndex < words.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    const nextIndex = currentIndex + 1;
+    
+    // Tekrar modunda tüm kartlar biterse veya normal modda son kart ise
+    if (isRetryMode && incorrectWords.length === 0) {
+      setIsComplete(true);
+    } else if (nextIndex < words.length) {
+      setCurrentIndex(nextIndex);
     } else {
       setIsComplete(true);
     }
@@ -107,6 +116,7 @@ export default function LearnPage() {
 
   const handleRetryIncorrect = () => {
     // Yanlış kartları tekrar göster
+    console.log('Tekrar modu başlatılıyor. Yanlış kartlar:', incorrectWords);
     setInitialIncorrectCount(incorrectWords.length);
     setCurrentIndex(0);
     setIsComplete(false);
@@ -322,7 +332,7 @@ export default function LearnPage() {
 
       {/* Flashcards */}
       <div className="relative h-[600px] flex items-center justify-center">
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {words.slice(currentIndex, currentIndex + 3).reverse().map((word, index) => {
             const actualIndex = currentIndex + (2 - index);
             const offset = (2 - index) * 10;
@@ -330,7 +340,7 @@ export default function LearnPage() {
             
             return (
               <Flashcard
-                key={word.id}
+                key={`${isRetryMode ? 'retry' : 'normal'}-${word.id}-${currentIndex}`}
                 word={word}
                 onSwipe={handleSwipe}
                 style={{
