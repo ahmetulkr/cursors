@@ -214,10 +214,10 @@ export default function LearnPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
+      <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600 dark:text-gray-300">Kelimeler yükleniyor...</p>
+          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300">Kelimeler yükleniyor...</p>
         </div>
       </div>
     );
@@ -225,12 +225,12 @@ export default function LearnPage() {
 
   if (allWords.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
+      <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
         <div className="text-center">
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">Bu seviye için kelime bulunamadı.</p>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-4">Bu seviye için kelime bulunamadı.</p>
           <button
             onClick={handleBackToHome}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
           >
             Ana Sayfaya Dön
           </button>
@@ -249,98 +249,91 @@ export default function LearnPage() {
     const isPerfectScore = correctPercentage === 100;
     
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
+      <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center"
+          className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-lg w-full text-center max-h-[95vh] overflow-y-auto"
         >
-          <div className="text-6xl mb-6">{isPerfectScore ? '🏆' : '🎉'}</div>
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6">{isPerfectScore ? '🏆' : '🎉'}</div>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {isPerfectScore ? 'Mükemmel!' : 'Tebrikler!'}
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6">
             {isPerfectScore 
               ? `${level.toUpperCase()} seviyesini başarıyla tamamladınız!`
               : `${level.toUpperCase()} seviyesini tamamladınız!`
             }
           </p>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6">
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 sm:p-4 md:p-6">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
                 {totalCorrect}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Doğru</div>
+              <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">Doğru</div>
             </div>
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6">
-              <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 sm:p-4 md:p-6">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
                 {incorrectWords.length}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Yanlış</div>
+              <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">Yanlış</div>
             </div>
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-6">
-              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 sm:p-4 md:p-6">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                 {totalScore}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Puan</div>
+              <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">Puan</div>
             </div>
           </div>
 
-          <div className="mb-8">
-            <div className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <div className="mb-4 sm:mb-6">
+            <div className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               %{correctPercentage}
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Başarı Oranı</div>
-          </div>
-
-          <div className="mb-8">
-            <div className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
-              {scorePercentage}% Puan
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Puan Oranı</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Başarı Oranı</div>
           </div>
 
           {isPerfectScore && (
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-              <div className="text-sm text-green-600 dark:text-green-400 mb-2">
+            <div className="mb-4 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+              <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 mb-1 sm:mb-2">
                 🎯 Tüm kelimeleri doğru cevapladınız!
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
                 Bu seviyeyi mükemmel bir şekilde tamamladınız
               </div>
             </div>
           )}
 
           {!isPerfectScore && (incorrectWords.length > 0 || skipWords.length > 0) && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
-              <div className="text-sm text-red-600 dark:text-red-400 mb-2">
+            <div className="mb-4 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+              <div className="text-xs sm:text-sm text-red-600 dark:text-red-400 mb-1 sm:mb-2">
                 Tekrar Çalışılması Gereken Kelimeler ({incorrectWords.length + skipWords.length})
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
                 Bu kelimeleri tekrar çalışmanız önerilir
               </div>
             </div>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             {nextLevel && (
               <button
                 onClick={handleNextLevel}
-                className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
               >
                 {nextLevel} Seviyesine Geç
               </button>
             )}
             <button
               onClick={handleRestart}
-              className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
             >
               Tekrar Çöz
             </button>
             <button
               onClick={handleBackToHome}
-              className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold rounded-lg transition-colors"
+              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
             >
               Ana Sayfa
             </button>
@@ -351,68 +344,74 @@ export default function LearnPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 pb-40">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 flex flex-col">
       {/* Header */}
-      <div className="p-6">
-        <div className="max-w-2xl mx-auto flex items-center justify-between mb-6">
+      <div className="p-3 sm:p-4 flex-shrink-0">
+        <div className="max-w-2xl mx-auto flex items-center justify-between mb-3 sm:mb-4 gap-2">
           <button
             onClick={handleBackToHome}
-            className="px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors text-sm"
           >
             ← Geri
           </button>
-          <div className="text-center">
-            <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="text-center flex-1">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               {level.toUpperCase()} Seviyesi
             </div>
             {isRetryMode && (
-              <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
+              <div className="text-[10px] sm:text-xs text-orange-600 dark:text-orange-400 font-medium mt-0.5">
                 🔄 Tekrar Modu
               </div>
             )}
           </div>
-          <div className="w-20" /> {/* Spacer */}
+          <div className="w-12 sm:w-16" /> {/* Spacer */}
         </div>
 
-        <ProgressBar
-          current={currentIndex + 1}
-          total={words.length}
-          correct={isRetryMode ? retryCorrectWords.length : correctWords.length}
-          incorrect={incorrectWords.length}
-          score={totalScore}
+        <div className="max-w-2xl mx-auto">
+          <ProgressBar
+            current={currentIndex + 1}
+            total={words.length}
+            correct={isRetryMode ? retryCorrectWords.length : correctWords.length}
+            incorrect={incorrectWords.length}
+            score={totalScore}
+          />
+        </div>
+      </div>
+
+      {/* Flashcards - Flex-1 ile ortalanmış */}
+      <div className="flex-1 flex items-center justify-center px-4 min-h-0">
+        <div className="relative w-full h-full flex items-center justify-center">
+          <AnimatePresence mode="popLayout">
+            {words.slice(currentIndex, currentIndex + 3).reverse().map((word, index) => {
+              const actualIndex = currentIndex + (2 - index);
+              const offset = (2 - index) * 6;
+              const scale = 1 - (2 - index) * 0.04;
+              
+              return (
+                <Flashcard
+                  key={`${isRetryMode ? 'retry' : 'normal'}-${word.id}-${currentIndex}`}
+                  word={word}
+                  onAnswer={handleAnswer}
+                  onSkip={handleSkip}
+                  style={{
+                    zIndex: words.length - actualIndex,
+                    scale,
+                    y: offset,
+                  }}
+                />
+              );
+            })}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Kumbara - Sabit alt kısım */}
+      <div className="flex-shrink-0">
+        <PiggyBank 
+          correctWords={isRetryMode ? retryCorrectWords : correctWords} 
+          incorrectWords={incorrectWords} 
         />
       </div>
-
-      {/* Flashcards */}
-      <div className="relative h-[600px] flex items-center justify-center">
-        <AnimatePresence mode="popLayout">
-          {words.slice(currentIndex, currentIndex + 3).reverse().map((word, index) => {
-            const actualIndex = currentIndex + (2 - index);
-            const offset = (2 - index) * 10;
-            const scale = 1 - (2 - index) * 0.05;
-            
-            return (
-              <Flashcard
-                key={`${isRetryMode ? 'retry' : 'normal'}-${word.id}-${currentIndex}`}
-                word={word}
-                onAnswer={handleAnswer}
-                onSkip={handleSkip}
-                style={{
-                  zIndex: words.length - actualIndex,
-                  scale,
-                  y: offset,
-                }}
-              />
-            );
-          })}
-        </AnimatePresence>
-      </div>
-
-      {/* Kumbara */}
-      <PiggyBank 
-        correctWords={isRetryMode ? retryCorrectWords : correctWords} 
-        incorrectWords={incorrectWords} 
-      />
     </div>
   );
 }

@@ -77,9 +77,9 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
       exit={{ scale: 0.8, opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="relative w-[340px] h-[480px] md:w-[400px] md:h-[540px]">
+      <div className="relative w-[85vw] max-w-[380px] h-[360px] sm:h-[400px] md:h-[440px]">
         <motion.div
-          className="w-full h-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-3xl shadow-2xl p-8 flex flex-col text-white"
+          className="w-full h-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col text-white"
           animate={{ 
             background: showResult 
               ? (isCorrect 
@@ -90,16 +90,16 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
           transition={{ duration: 0.5 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="text-sm font-medium uppercase tracking-wide opacity-70">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-xs sm:text-sm font-medium uppercase tracking-wide opacity-70">
               {questionLanguage}
             </div>
             {showResult && (
               <div className="flex items-center gap-2">
-                <div className={`text-2xl ${isCorrect ? 'text-green-300' : 'text-red-300'}`}>
+                <div className={`text-xl sm:text-2xl ${isCorrect ? 'text-green-300' : 'text-red-300'}`}>
                   {isCorrect ? '✓' : '✗'}
                 </div>
-                <div className="text-lg font-bold">
+                <div className="text-base sm:text-lg font-bold">
                   {score} puan
                 </div>
               </div>
@@ -107,14 +107,14 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
           </div>
 
           {/* Question */}
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="text-5xl md:text-6xl font-bold text-center mb-8">
+          <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+            <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-6 sm:mb-8 break-words">
               {questionText}
             </div>
             
             {!showResult ? (
-              <div className="w-full max-w-sm">
-                <div className="text-sm opacity-70 mb-4 text-center">
+              <div className="w-full">
+                <div className="text-xs sm:text-sm opacity-70 mb-3 text-center">
                   {answerLanguage} çevirisini yazın:
                 </div>
                 <input
@@ -122,7 +122,7 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                  className="w-full px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/70 text-center text-xl focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/70 text-center text-lg sm:text-xl focus:outline-none focus:ring-2 focus:ring-white/50"
                   placeholder={`${answerLanguage} yazın...`}
                   autoFocus
                 />
@@ -132,16 +132,16 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-center"
+                  className="text-center max-w-full px-2"
                 >
-                  <div className="text-2xl font-bold mb-4">
+                  <div className="text-xl sm:text-2xl font-bold mb-3">
                     {isCorrect ? '🎉 Doğru!' : '❌ Yanlış'}
                   </div>
-                  <div className="text-xl mb-4">
+                  <div className="text-lg sm:text-xl mb-3 break-words">
                     Doğru cevap: <span className="font-bold">{correctAnswer}</span>
                   </div>
                   {!isCorrect && userAnswer && (
-                    <div className="text-lg opacity-80 mb-4">
+                    <div className="text-base sm:text-lg opacity-80 mb-3 break-words">
                       Senin cevabın: <span className="font-bold">{userAnswer}</span>
                     </div>
                   )}
@@ -151,19 +151,19 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-auto">
+          <div className="mt-auto pt-4">
             {!showResult ? (
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   onClick={handleSubmit}
                   disabled={!userAnswer.trim()}
-                  className="flex-1 px-6 py-3 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition-colors"
+                  className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm sm:text-base font-semibold transition-colors"
                 >
-                  Cevabı Kontrol Et
+                  Kontrol Et
                 </button>
                 <button
                   onClick={handleSkip}
-                  className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-semibold transition-colors"
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 rounded-xl text-sm sm:text-base font-semibold transition-colors whitespace-nowrap"
                 >
                   Bilmiyorum
                 </button>
@@ -171,9 +171,9 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
             ) : (
               <button
                 onClick={handleNext}
-                className="w-full px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-semibold transition-colors"
+                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white/20 hover:bg-white/30 rounded-xl text-sm sm:text-base font-semibold transition-colors"
               >
-                Sonraki Kelime
+                Sonraki Kelime →
               </button>
             )}
           </div>
