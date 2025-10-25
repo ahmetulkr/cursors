@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Word {
   id: number;
@@ -12,108 +12,168 @@ interface Word {
 
 interface FlashcardProps {
   word: Word;
-  onSwipe: (wordId: number, isCorrect: boolean) => void;
+  onAnswer: (wordId: number, isCorrect: boolean, userAnswer?: string) => void;
+  onSkip: (wordId: number) => void;
   style?: React.CSSProperties;
 }
 
-export default function Flashcard({ word, onSwipe, style }: FlashcardProps) {
-  const [isFlipped, setIsFlipped] = useState(false);
+export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardProps) {
   const [showFront, setShowFront] = useState(Math.random() > 0.5); // Rastgele TR veya EN
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-25, 25]);
-  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [score, setScore] = useState(0);
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const threshold = 100;
+  const correctAnswer = showFront ? word.english : word.turkish;
+  const questionText = showFront ? word.turkish : word.english;
+  const questionLanguage = showFront ? 'Türkçe' : 'English';
+  const answerLanguage = showFront ? 'English' : 'Türkçe';
+
+  const handleSubmit = () => {
+    if (userAnswer.trim() === '') return;
     
-    if (Math.abs(info.offset.x) > threshold) {
-      // Sola kaydırma = Doğru
-      // Sağa kaydırma = Yanlış
-      const isCorrect = info.offset.x < 0;
-      onSwipe(word.id, isCorrect);
+    const isAnswerCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase();
+    setIsCorrect(isAnswerCorrect);
+    setShowAnswer(true);
+    setShowResult(true);
+    
+    // Puan hesaplama
+    if (isAnswerCorrect) {
+      setScore(100);
     } else {
-      // Eşik değerine ulaşılmadı, kartı geri getir
-      x.set(0);
+      setScore(0);
     }
   };
 
-  const handleClick = () => {
-    if (Math.abs(x.get()) < 10) { // Sadece sürüklemiyorsa
-      setIsFlipped(!isFlipped);
-    }
+  const handleSkip = () => {
+    setShowAnswer(true);
+    setShowResult(true);
+    setScore(0);
+  };
+
+  const handleNext = () => {
+    onAnswer(word.id, isCorrect, userAnswer);
+    // Reset for next card
+    setUserAnswer('');
+    setShowAnswer(false);
+    setShowResult(false);
+    setIsCorrect(false);
+    setScore(0);
+    setShowFront(Math.random() > 0.5);
   };
 
   return (
     <motion.div
-      style={{
-        x,
-        rotate,
-        opacity,
-        ...style,
-      }}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      onDragEnd={handleDragEnd}
-      className="absolute cursor-grab active:cursor-grabbing"
-      whileTap={{ scale: 1.05 }}
+      style={style}
+      className="absolute"
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.8, opacity: 0 }}
+      transition={{ duration: 0.3 }}
     >
-      <motion.div
-        className="relative w-[340px] h-[480px] md:w-[400px] md:h-[540px]"
-        onClick={handleClick}
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6, type: 'spring' }}
-        style={{ transformStyle: 'preserve-3d' }}
-      >
-        {/* Ön Yüz */}
-        <div
-          className="absolute inset-0 backface-hidden rounded-3xl shadow-2xl"
-          style={{ backfaceVisibility: 'hidden' }}
+      <div className="relative w-[340px] h-[480px] md:w-[400px] md:h-[540px]">
+        <motion.div
+          className="w-full h-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-3xl shadow-2xl p-8 flex flex-col text-white"
+          animate={{ 
+            background: showResult 
+              ? (isCorrect 
+                  ? 'linear-gradient(135deg, #10b981, #059669, #047857)' 
+                  : 'linear-gradient(135deg, #ef4444, #dc2626, #b91c1c)')
+              : 'linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899)'
+          }}
+          transition={{ duration: 0.5 }}
         >
-          <div className="w-full h-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-3xl p-8 flex flex-col items-center justify-center text-white">
-            <div className="text-sm font-medium uppercase tracking-wide opacity-70 mb-4">
-              {showFront ? 'Türkçe' : 'English'}
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-sm font-medium uppercase tracking-wide opacity-70">
+              {questionLanguage}
             </div>
-            <div className="text-5xl md:text-6xl font-bold text-center mb-8">
-              {showFront ? word.turkish : word.english}
-            </div>
-            <div className="text-sm opacity-70 mt-auto">
-              Kartı çevirmek için tıklayın
-            </div>
+            {showResult && (
+              <div className="flex items-center gap-2">
+                <div className={`text-2xl ${isCorrect ? 'text-green-300' : 'text-red-300'}`}>
+                  {isCorrect ? '✓' : '✗'}
+                </div>
+                <div className="text-lg font-bold">
+                  {score} puan
+                </div>
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Arka Yüz */}
-        <div
-          className="absolute inset-0 backface-hidden rounded-3xl shadow-2xl"
-          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-        >
-          <div className="w-full h-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 rounded-3xl p-8 flex flex-col items-center justify-center text-white">
-            <div className="text-sm font-medium uppercase tracking-wide opacity-70 mb-4">
-              {showFront ? 'English' : 'Türkçe'}
-            </div>
+          {/* Question */}
+          <div className="flex-1 flex flex-col items-center justify-center">
             <div className="text-5xl md:text-6xl font-bold text-center mb-8">
-              {showFront ? word.english : word.turkish}
+              {questionText}
             </div>
-            <div className="text-sm opacity-70 mt-auto">
-              Sola kaydır = Doğru, Sağa kaydır = Yanlış
-            </div>
+            
+            {!showResult ? (
+              <div className="w-full max-w-sm">
+                <div className="text-sm opacity-70 mb-4 text-center">
+                  {answerLanguage} çevirisini yazın:
+                </div>
+                <input
+                  type="text"
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                  className="w-full px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/70 text-center text-xl focus:outline-none focus:ring-2 focus:ring-white/50"
+                  placeholder={`${answerLanguage} yazın...`}
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <AnimatePresence>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-center"
+                >
+                  <div className="text-2xl font-bold mb-4">
+                    {isCorrect ? '🎉 Doğru!' : '❌ Yanlış'}
+                  </div>
+                  <div className="text-xl mb-4">
+                    Doğru cevap: <span className="font-bold">{correctAnswer}</span>
+                  </div>
+                  {!isCorrect && userAnswer && (
+                    <div className="text-lg opacity-80 mb-4">
+                      Senin cevabın: <span className="font-bold">{userAnswer}</span>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
-        </div>
-      </motion.div>
 
-      {/* Swipe İpuçları */}
-      <motion.div
-        className="absolute -left-20 top-1/2 -translate-y-1/2 text-green-500 text-6xl font-bold"
-        style={{ opacity: useTransform(x, [-150, 0], [1, 0]) }}
-      >
-        ✓
-      </motion.div>
-      <motion.div
-        className="absolute -right-20 top-1/2 -translate-y-1/2 text-red-500 text-6xl font-bold"
-        style={{ opacity: useTransform(x, [0, 150], [0, 1]) }}
-      >
-        ✗
-      </motion.div>
+          {/* Action Buttons */}
+          <div className="mt-auto">
+            {!showResult ? (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSubmit}
+                  disabled={!userAnswer.trim()}
+                  className="flex-1 px-6 py-3 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition-colors"
+                >
+                  Cevabı Kontrol Et
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-semibold transition-colors"
+                >
+                  Bilmiyorum
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="w-full px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-semibold transition-colors"
+              >
+                Sonraki Kelime
+              </button>
+            )}
+          </div>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

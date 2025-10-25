@@ -20,9 +20,10 @@ model Word {
 }
 
 model CardProgress {
-  id        Int      @id @default(autoincrement())
-  wordId    Int
-  word      Word     @relation(fields: [wordId], references: [id])
-  isCorrect Boolean
-  timestamp DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  wordId      Int
+  word        Word     @relation(fields: [wordId], references: [id])
+  isCorrect   Boolean
+  userAnswer  String?  // Kullanıcının verdiği cevap
+  timestamp   DateTime @default(now())
 }

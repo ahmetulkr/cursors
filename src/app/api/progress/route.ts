@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { wordId, isCorrect } = body;
+    const { wordId, isCorrect, userAnswer } = body;
 
     if (typeof wordId !== 'number' || typeof isCorrect !== 'boolean') {
       return NextResponse.json(
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       data: {
         wordId,
         isCorrect,
+        userAnswer: userAnswer || null,
       },
     });
 

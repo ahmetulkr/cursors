@@ -23,8 +23,11 @@ export default function LearnPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctWords, setCorrectWords] = useState<Word[]>([]);
   const [incorrectWords, setIncorrectWords] = useState<Word[]>([]);
+  const [retryWords, setRetryWords] = useState<Word[]>([]);
   const [loading, setLoading] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
+  const [totalScore, setTotalScore] = useState(0);
+  const [currentScore, setCurrentScore] = useState(0);
 
   useEffect(() => {
     const fetchWords = async () => {
@@ -45,15 +48,21 @@ export default function LearnPage() {
     fetchWords();
   }, [level]);
 
-  const handleSwipe = async (wordId: number, isCorrect: boolean) => {
+  const handleAnswer = async (wordId: number, isCorrect: boolean, userAnswer?: string) => {
     const word = words.find(w => w.id === wordId);
     if (!word) return;
 
-    // Kumbaraya ekle
+    // Puan hesaplama
+    const points = isCorrect ? 100 : 0;
+    setCurrentScore(points);
+    setTotalScore(prev => prev + points);
+
+    // Kelimeleri kategorilere ayır
     if (isCorrect) {
       setCorrectWords([...correctWords, word]);
     } else {
       setIncorrectWords([...incorrectWords, word]);
+      setRetryWords([...retryWords, word]);
     }
 
     // Progress kaydet
@@ -63,7 +72,7 @@ export default function LearnPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ wordId, isCorrect }),
+        body: JSON.stringify({ wordId, isCorrect, userAnswer }),
       });
     } catch (error) {
       console.error('Progress kaydedilirken hata:', error);
@@ -73,7 +82,38 @@ export default function LearnPage() {
     if (currentIndex < words.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      setIsComplete(true);
+      // Eğer yanlış kelimeler varsa tekrar et
+      if (retryWords.length > 0) {
+        setWords([...retryWords]);
+        setRetryWords([]);
+        setCurrentIndex(0);
+        setCorrectWords([]);
+        setIncorrectWords([]);
+      } else {
+        setIsComplete(true);
+      }
+    }
+  };
+
+  const handleSkip = (wordId: number) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word) return;
+
+    setRetryWords([...retryWords, word]);
+    
+    // Sonraki karta geç
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      if (retryWords.length > 0) {
+        setWords([...retryWords]);
+        setRetryWords([]);
+        setCurrentIndex(0);
+        setCorrectWords([]);
+        setIncorrectWords([]);
+      } else {
+        setIsComplete(true);
+      }
     }
   };
 
@@ -81,6 +121,9 @@ export default function LearnPage() {
     setCurrentIndex(0);
     setCorrectWords([]);
     setIncorrectWords([]);
+    setRetryWords([]);
+    setTotalScore(0);
+    setCurrentScore(0);
     setIsComplete(false);
   };
 
@@ -117,6 +160,8 @@ export default function LearnPage() {
 
   if (isComplete) {
     const correctPercentage = Math.round((correctWords.length / words.length) * 100);
+    const maxScore = words.length * 100;
+    const scorePercentage = Math.round((totalScore / maxScore) * 100);
     
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
@@ -133,7 +178,7 @@ export default function LearnPage() {
             {level.toUpperCase()} seviyesini tamamladınız!
           </p>
 
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400">
                 {correctWords.length}
@@ -146,6 +191,12 @@ export default function LearnPage() {
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Yanlış</div>
             </div>
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-6">
+              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                {totalScore}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Puan</div>
+            </div>
           </div>
 
           <div className="mb-8">
@@ -153,6 +204,13 @@ export default function LearnPage() {
               %{correctPercentage}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Başarı Oranı</div>
+          </div>
+
+          <div className="mb-8">
+            <div className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+              {scorePercentage}% Puan
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Puan Oranı</div>
           </div>
 
           <div className="flex gap-4">
@@ -196,6 +254,7 @@ export default function LearnPage() {
           total={words.length}
           correct={correctWords.length}
           incorrect={incorrectWords.length}
+          score={totalScore}
         />
       </div>
 
@@ -211,7 +270,8 @@ export default function LearnPage() {
               <Flashcard
                 key={word.id}
                 word={word}
-                onSwipe={handleSwipe}
+                onAnswer={handleAnswer}
+                onSkip={handleSkip}
                 style={{
                   zIndex: words.length - actualIndex,
                   scale,

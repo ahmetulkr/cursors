@@ -7,9 +7,10 @@ interface ProgressBarProps {
   total: number;
   correct: number;
   incorrect: number;
+  score?: number;
 }
 
-export default function ProgressBar({ current, total, correct, incorrect }: ProgressBarProps) {
+export default function ProgressBar({ current, total, correct, incorrect, score = 0 }: ProgressBarProps) {
   const percentage = (current / total) * 100;
 
   return (
@@ -37,6 +38,12 @@ export default function ProgressBar({ current, total, correct, incorrect }: Prog
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <span className="text-gray-700 dark:text-gray-300">
               Yanlış: <span className="font-bold">{incorrect}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+            <span className="text-gray-700 dark:text-gray-300">
+              Puan: <span className="font-bold">{score}</span>
             </span>
           </div>
         </div>
