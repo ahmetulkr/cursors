@@ -25,6 +25,9 @@ export default function LearnPage() {
   const [incorrectWords, setIncorrectWords] = useState<Word[]>([]);
   const [loading, setLoading] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
+  const [isRetryMode, setIsRetryMode] = useState(false);
+  const [retryCorrectWords, setRetryCorrectWords] = useState<Word[]>([]);
+  const [initialIncorrectCount, setInitialIncorrectCount] = useState(0);
 
   useEffect(() => {
     const fetchWords = async () => {
@@ -50,10 +53,22 @@ export default function LearnPage() {
     if (!word) return;
 
     // Kumbaraya ekle
-    if (isCorrect) {
-      setCorrectWords([...correctWords, word]);
+    if (isRetryMode) {
+      // Tekrar modunda
+      if (isCorrect) {
+        setRetryCorrectWords([...retryCorrectWords, word]);
+        // Yanlışlar listesinden çıkar
+        setIncorrectWords(incorrectWords.filter(w => w.id !== word.id));
+      } else {
+        // Hala yanlış, listede kalsın
+      }
     } else {
-      setIncorrectWords([...incorrectWords, word]);
+      // Normal mod
+      if (isCorrect) {
+        setCorrectWords([...correctWords, word]);
+      } else {
+        setIncorrectWords([...incorrectWords, word]);
+      }
     }
 
     // Progress kaydet
@@ -82,6 +97,19 @@ export default function LearnPage() {
     setCorrectWords([]);
     setIncorrectWords([]);
     setIsComplete(false);
+    setIsRetryMode(false);
+    setRetryCorrectWords([]);
+    setInitialIncorrectCount(0);
+  };
+
+  const handleRetryIncorrect = () => {
+    // Yanlış kartları tekrar göster
+    setInitialIncorrectCount(incorrectWords.length);
+    setWords(incorrectWords);
+    setCurrentIndex(0);
+    setIsComplete(false);
+    setIsRetryMode(true);
+    setRetryCorrectWords([]);
   };
 
   const handleBackToHome = () => {
@@ -116,6 +144,79 @@ export default function LearnPage() {
   }
 
   if (isComplete) {
+    if (isRetryMode) {
+      // Tekrar modu tamamlandı
+      const retryCorrectPercentage = Math.round((retryCorrectWords.length / initialIncorrectCount) * 100);
+      
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center"
+          >
+            <div className="text-6xl mb-6">{incorrectWords.length === 0 ? '🌟' : '💪'}</div>
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {incorrectWords.length === 0 ? 'Mükemmel!' : 'Tekrar Tamamlandı!'}
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              {incorrectWords.length === 0 
+                ? 'Tüm yanlış kartları doğru yaptınız!' 
+                : 'Tekrar turunu tamamladınız!'}
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  {retryCorrectWords.length}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Öğrenilen</div>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6">
+                <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                  {incorrectWords.length}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Kalan</div>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <div className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                %{retryCorrectPercentage}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">İyileşme Oranı</div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {incorrectWords.length > 0 && (
+                <button
+                  onClick={handleRetryIncorrect}
+                  className="w-full px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Kalan {incorrectWords.length} Kelimeyi Tekrar Çöz
+                </button>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleRestart}
+                  className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Baştan Başla
+                </button>
+                <button
+                  onClick={handleBackToHome}
+                  className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold rounded-lg transition-colors"
+                >
+                  Ana Sayfa
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      );
+    }
+
+    // Normal mod tamamlandı
     const correctPercentage = Math.round((correctWords.length / words.length) * 100);
     
     return (
@@ -155,19 +256,30 @@ export default function LearnPage() {
             <div className="text-sm text-gray-600 dark:text-gray-400">Başarı Oranı</div>
           </div>
 
-          <div className="flex gap-4">
-            <button
-              onClick={handleRestart}
-              className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
-            >
-              Tekrar Çöz
-            </button>
-            <button
-              onClick={handleBackToHome}
-              className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold rounded-lg transition-colors"
-            >
-              Ana Sayfa
-            </button>
+          <div className="flex flex-col gap-3">
+            {incorrectWords.length > 0 && (
+              <button
+                onClick={handleRetryIncorrect}
+                className="w-full px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <span>🔄</span>
+                <span>Yanlış {incorrectWords.length} Kelimeyi Tekrar Çöz</span>
+              </button>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={handleRestart}
+                className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Tekrar Çöz
+              </button>
+              <button
+                onClick={handleBackToHome}
+                className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold rounded-lg transition-colors"
+              >
+                Ana Sayfa
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -185,8 +297,15 @@ export default function LearnPage() {
           >
             ← Geri
           </button>
-          <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {level.toUpperCase()} Seviyesi
+          <div className="text-center">
+            <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {level.toUpperCase()} Seviyesi
+            </div>
+            {isRetryMode && (
+              <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
+                🔄 Tekrar Modu
+              </div>
+            )}
           </div>
           <div className="w-20" /> {/* Spacer */}
         </div>
@@ -194,7 +313,7 @@ export default function LearnPage() {
         <ProgressBar
           current={currentIndex + 1}
           total={words.length}
-          correct={correctWords.length}
+          correct={isRetryMode ? retryCorrectWords.length : correctWords.length}
           incorrect={incorrectWords.length}
         />
       </div>
@@ -224,7 +343,10 @@ export default function LearnPage() {
       </div>
 
       {/* Kumbara */}
-      <PiggyBank correctWords={correctWords} incorrectWords={incorrectWords} />
+      <PiggyBank 
+        correctWords={isRetryMode ? retryCorrectWords : correctWords} 
+        incorrectWords={incorrectWords} 
+      />
     </div>
   );
 }
