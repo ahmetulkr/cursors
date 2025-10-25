@@ -154,46 +154,21 @@ export default function LearnPage() {
   };
 
   const handleRoundComplete = () => {
-    if (isRetryMode) {
-      // Tekrar turu bitti, hala yanlış veya bilmiyorum kelimeler var mı kontrol et
-      const stillIncorrect = incorrectWords.filter(word => 
-        !correctWords.some(correct => correct.id === word.id) &&
-        !retryCorrectWords.some(correct => correct.id === word.id)
-      );
-      const stillSkipped = skipWords.filter(word => 
-        !correctWords.some(correct => correct.id === word.id) &&
-        !retryCorrectWords.some(correct => correct.id === word.id)
-      );
-      
-      if (stillIncorrect.length > 0 || stillSkipped.length > 0) {
-        // Hala yanlış veya bilmiyorum kelimeler var, tekrar et
-        const wordsToRetry = [...stillIncorrect, ...stillSkipped];
-        setWords([...wordsToRetry]);
-        setCurrentIndex(0);
-        setCorrectWords([]);
-        setIncorrectWords([]);
-        setRetryWords([]);
-        setSkipWords([]);
-      } else {
-        // Tüm kelimeler doğru cevaplandı
-        setIsComplete(true);
-        saveLevelProgress(true); // Seviye tamamlandı
-      }
+    // Yanlış ve bilmiyorum kelimelerini topla
+    const wordsToRetry = [...new Set([...incorrectWords, ...skipWords])];
+    
+    if (wordsToRetry.length > 0) {
+      // Hala yanlış veya bilmiyorum kelimeler var, tekrar göster
+      setWords([...wordsToRetry]);
+      setCurrentIndex(0);
+      setIncorrectWords([]);
+      setSkipWords([]);
+      setRetryWords([]);
+      setIsRetryMode(true);
     } else {
-      // İlk tur bitti, tekrar edilecek kelimeleri belirle
-      const wordsToRetry = [...retryWords, ...skipWords];
-      if (wordsToRetry.length > 0) {
-        setWords([...wordsToRetry]);
-        setRetryWords([]);
-        setSkipWords([]);
-        setCurrentIndex(0);
-        setCorrectWords([]);
-        setIncorrectWords([]);
-        setIsRetryMode(true);
-      } else {
-        setIsComplete(true);
-        saveLevelProgress(true); // Seviye tamamlandı
-      }
+      // Tüm kelimeler doğru cevaplandı - Seviye tamamlandı!
+      setIsComplete(true);
+      saveLevelProgress(true);
     }
   };
 
@@ -272,13 +247,8 @@ export default function LearnPage() {
   }
 
   if (isComplete) {
-    const totalCorrect = isRetryMode ? retryCorrectWords.length : correctWords.length;
     const totalWords = allWords.length;
-    const correctPercentage = Math.round((totalCorrect / totalWords) * 100);
-    const maxScore = totalWords * 100;
-    const scorePercentage = Math.round((totalScore / maxScore) * 100);
     const nextLevel = getNextLevel(level);
-    const isPerfectScore = correctPercentage === 100;
     
     return (
       <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
@@ -287,88 +257,71 @@ export default function LearnPage() {
           animate={{ scale: 1, opacity: 1 }}
           className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-lg w-full text-center max-h-[95vh] overflow-y-auto"
         >
-          <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6">{isPerfectScore ? '🏆' : '🎉'}</div>
+          <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6">🏆</div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {isPerfectScore ? 'Mükemmel!' : 'Tebrikler!'}
+            Tebrikler! 🎉
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6">
-            {isPerfectScore 
-              ? `${level.toUpperCase()} seviyesini başarıyla tamamladınız!`
-              : `${level.toUpperCase()} seviyesini tamamladınız!`
-            }
+            {level.toUpperCase()} seviyesini başarıyla tamamladınız!
           </p>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 sm:p-4 md:p-6">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
-                {totalCorrect}
-              </div>
-              <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">Doğru</div>
+          <div className="mb-6 p-4 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border-2 border-green-300 dark:border-green-700">
+            <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+              ✨ Mükemmel! ✨
             </div>
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 sm:p-4 md:p-6">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
-                {incorrectWords.length}
-              </div>
-              <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">Yanlış</div>
+            <div className="text-sm sm:text-base text-green-700 dark:text-green-300 mb-3">
+              Tüm {totalWords} kelimeyi doğru cevapladınız!
             </div>
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 sm:p-4 md:p-6">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+            {nextLevel && (
+              <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
+                🚀 Artık {nextLevel} seviyesine geçebilirsiniz!
+              </div>
+            )}
+            {!nextLevel && (
+              <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
+                🌟 Tüm seviyeleri tamamladınız! Harikasınız!
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 sm:p-4 md:p-5">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400">
+                {totalWords}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Toplam Kelime</div>
+            </div>
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 sm:p-4 md:p-5">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-600 dark:text-yellow-400">
                 {totalScore}
               </div>
-              <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">Puan</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Toplam Puan</div>
             </div>
           </div>
 
-          <div className="mb-4 sm:mb-6">
-            <div className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              %{correctPercentage}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Başarı Oranı</div>
-          </div>
-
-          {isPerfectScore && (
-            <div className="mb-4 p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-              <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 mb-1 sm:mb-2">
-                🎯 Tüm kelimeleri doğru cevapladınız!
-              </div>
-              <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
-                Bu seviyeyi mükemmel bir şekilde tamamladınız
-              </div>
-            </div>
-          )}
-
-          {!isPerfectScore && (incorrectWords.length > 0 || skipWords.length > 0) && (
-            <div className="mb-4 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
-              <div className="text-xs sm:text-sm text-red-600 dark:text-red-400 mb-1 sm:mb-2">
-                Tekrar Çalışılması Gereken Kelimeler ({incorrectWords.length + skipWords.length})
-              </div>
-              <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">
-                Bu kelimeleri tekrar çalışmanız önerilir
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="flex flex-col gap-2 sm:gap-3">
             {nextLevel && (
               <button
                 onClick={handleNextLevel}
-                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
+                className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base sm:text-lg font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg"
               >
-                {nextLevel} Seviyesine Geç
+                🎯 {nextLevel} Seviyesine Geç →
               </button>
             )}
-            <button
-              onClick={handleRestart}
-              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
-            >
-              Tekrar Çöz
-            </button>
-            <button
-              onClick={handleBackToHome}
-              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
-            >
-              Ana Sayfa
-            </button>
+            <div className="flex gap-2 sm:gap-3">
+              <button
+                onClick={handleRestart}
+                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
+              >
+                🔄 Tekrar Çöz
+              </button>
+              <button
+                onClick={handleBackToHome}
+                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
+              >
+                🏠 Ana Sayfa
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
