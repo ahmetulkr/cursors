@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'My Next.js App',
-  description: 'Next.js ile oluşturulmuş modern bir web uygulaması',
+  title: 'Dil Öğrenme - Flashcard Uygulaması',
+  description: 'İngilizce kelime öğrenmek için interaktif flashcard uygulaması',
 };
 
 export default function RootLayout({

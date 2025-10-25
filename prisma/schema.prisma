@@ -1,0 +1,28 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Word {
+  id       Int      @id @default(autoincrement())
+  turkish  String
+  english  String
+  level    String   // A1, A2, B1
+  progress CardProgress[]
+  createdAt DateTime @default(now())
+}
+
+model CardProgress {
+  id        Int      @id @default(autoincrement())
+  wordId    Int
+  word      Word     @relation(fields: [wordId], references: [id])
+  isCorrect Boolean
+  timestamp DateTime @default(now())
+}
