@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { wordId, isCorrect, userAnswer } = body;
+    const { userId, wordId, isCorrect, userAnswer } = body;
 
-    if (typeof wordId !== 'number' || typeof isCorrect !== 'boolean') {
+    if (!userId || typeof wordId !== 'number' || typeof isCorrect !== 'boolean') {
       return NextResponse.json(
         { error: 'Geçersiz veri formatı.' },
         { status: 400 }
@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     // Progress kaydet
     const progress = await prisma.cardProgress.create({
       data: {
+        userId: parseInt(userId),
         wordId,
         isCorrect,
         userAnswer: userAnswer || null,
@@ -32,15 +33,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Toplam istatistikleri getir
+    const userId = request.nextUrl.searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'userId gerekli' },
+        { status: 400 }
+      );
+    }
+
+    // Kullanıcıya ait istatistikleri getir
     const totalCorrect = await prisma.cardProgress.count({
-      where: { isCorrect: true },
+      where: { 
+        userId: parseInt(userId),
+        isCorrect: true 
+      },
     });
     
     const totalIncorrect = await prisma.cardProgress.count({
-      where: { isCorrect: false },
+      where: { 
+        userId: parseInt(userId),
+        isCorrect: false 
+      },
     });
 
     return NextResponse.json({

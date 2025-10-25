@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Flashcard from '@/components/Flashcard';
 import ProgressBar from '@/components/ProgressBar';
 import PiggyBank from '@/components/PiggyBank';
@@ -17,6 +18,7 @@ interface Word {
 export default function LearnPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const level = params.level as string;
 
   const [allWords, setAllWords] = useState<Word[]>([]);
@@ -88,16 +90,23 @@ export default function LearnPage() {
     }
 
     // Progress kaydet
-    try {
-      await fetch('/api/progress', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ wordId, isCorrect, userAnswer }),
-      });
-    } catch (error) {
-      console.error('Progress kaydedilirken hata:', error);
+    if (user) {
+      try {
+        await fetch('/api/progress', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            userId: user.id,
+            wordId, 
+            isCorrect, 
+            userAnswer 
+          }),
+        });
+      } catch (error) {
+        console.error('Progress kaydedilirken hata:', error);
+      }
     }
 
     // Sonraki karta geç
@@ -120,6 +129,27 @@ export default function LearnPage() {
       setCurrentIndex(currentIndex + 1);
     } else {
       handleRoundComplete();
+    }
+  };
+
+  const saveLevelProgress = async (completed: boolean) => {
+    if (!user) return;
+    
+    try {
+      await fetch('/api/level-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          level: level.toUpperCase(),
+          score: totalScore,
+          completed,
+        }),
+      });
+    } catch (error) {
+      console.error('Seviye ilerlemesi kaydedilirken hata:', error);
     }
   };
 
@@ -147,6 +177,7 @@ export default function LearnPage() {
       } else {
         // Tüm kelimeler doğru cevaplandı
         setIsComplete(true);
+        saveLevelProgress(true); // Seviye tamamlandı
       }
     } else {
       // İlk tur bitti, tekrar edilecek kelimeleri belirle
@@ -161,6 +192,7 @@ export default function LearnPage() {
         setIsRetryMode(true);
       } else {
         setIsComplete(true);
+        saveLevelProgress(true); // Seviye tamamlandı
       }
     }
   };
