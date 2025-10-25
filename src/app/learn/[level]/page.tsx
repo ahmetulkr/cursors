@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Flashcard from '@/components/Flashcard';
 import ProgressBar from '@/components/ProgressBar';
@@ -19,7 +19,7 @@ export default function LearnPage() {
   const router = useRouter();
   const level = params.level as string;
 
-  const [words, setWords] = useState<Word[]>([]);
+  const [allWords, setAllWords] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [correctWords, setCorrectWords] = useState<Word[]>([]);
   const [incorrectWords, setIncorrectWords] = useState<Word[]>([]);
@@ -37,7 +37,7 @@ export default function LearnPage() {
           throw new Error('Kelimeler yüklenemedi');
         }
         const data = await response.json();
-        setWords(data);
+        setAllWords(data);
         setLoading(false);
       } catch (error) {
         console.error('Kelimeler yüklenirken hata:', error);
@@ -79,8 +79,13 @@ export default function LearnPage() {
     }
 
     // Sonraki karta geç
-    if (currentIndex < words.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    const nextIndex = currentIndex + 1;
+    
+    // Tekrar modunda tüm kartlar biterse veya normal modda son kart ise
+    if (isRetryMode && incorrectWords.length === 0) {
+      setIsComplete(true);
+    } else if (nextIndex < words.length) {
+      setCurrentIndex(nextIndex);
     } else {
       // Eğer yanlış kelimeler varsa tekrar et
       if (retryWords.length > 0) {
@@ -125,6 +130,19 @@ export default function LearnPage() {
     setTotalScore(0);
     setCurrentScore(0);
     setIsComplete(false);
+    setIsRetryMode(false);
+    setRetryCorrectWords([]);
+    setInitialIncorrectCount(0);
+  };
+
+  const handleRetryIncorrect = () => {
+    // Yanlış kartları tekrar göster
+    console.log('Tekrar modu başlatılıyor. Yanlış kartlar:', incorrectWords);
+    setInitialIncorrectCount(incorrectWords.length);
+    setCurrentIndex(0);
+    setIsComplete(false);
+    setIsRetryMode(true);
+    setRetryCorrectWords([]);
   };
 
   const handleBackToHome = () => {
@@ -142,7 +160,7 @@ export default function LearnPage() {
     );
   }
 
-  if (words.length === 0) {
+  if (allWords.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
         <div className="text-center">
@@ -243,8 +261,15 @@ export default function LearnPage() {
           >
             ← Geri
           </button>
-          <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {level.toUpperCase()} Seviyesi
+          <div className="text-center">
+            <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {level.toUpperCase()} Seviyesi
+            </div>
+            {isRetryMode && (
+              <div className="text-xs text-orange-600 dark:text-orange-400 font-medium mt-1">
+                🔄 Tekrar Modu
+              </div>
+            )}
           </div>
           <div className="w-20" /> {/* Spacer */}
         </div>
@@ -252,7 +277,7 @@ export default function LearnPage() {
         <ProgressBar
           current={currentIndex + 1}
           total={words.length}
-          correct={correctWords.length}
+          correct={isRetryMode ? retryCorrectWords.length : correctWords.length}
           incorrect={incorrectWords.length}
           score={totalScore}
         />
@@ -260,7 +285,7 @@ export default function LearnPage() {
 
       {/* Flashcards */}
       <div className="relative h-[600px] flex items-center justify-center">
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {words.slice(currentIndex, currentIndex + 3).reverse().map((word, index) => {
             const actualIndex = currentIndex + (2 - index);
             const offset = (2 - index) * 10;
@@ -268,7 +293,7 @@ export default function LearnPage() {
             
             return (
               <Flashcard
-                key={word.id}
+                key={`${isRetryMode ? 'retry' : 'normal'}-${word.id}-${currentIndex}`}
                 word={word}
                 onAnswer={handleAnswer}
                 onSkip={handleSkip}
@@ -284,7 +309,10 @@ export default function LearnPage() {
       </div>
 
       {/* Kumbara */}
-      <PiggyBank correctWords={correctWords} incorrectWords={incorrectWords} />
+      <PiggyBank 
+        correctWords={isRetryMode ? retryCorrectWords : correctWords} 
+        incorrectWords={incorrectWords} 
+      />
     </div>
   );
 }
