@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Flashcard from '@/components/Flashcard';
@@ -32,9 +32,7 @@ export default function LearnPage() {
   const [loading, setLoading] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
-  const [currentScore, setCurrentScore] = useState(0);
   const [isRetryMode, setIsRetryMode] = useState(false);
-  const [initialIncorrectCount, setInitialIncorrectCount] = useState(0);
 
   useEffect(() => {
     const fetchWords = async () => {
@@ -62,7 +60,6 @@ export default function LearnPage() {
 
     // Puan hesaplama
     const points = isCorrect ? 100 : 0;
-    setCurrentScore(points);
     setTotalScore(prev => prev + points);
 
     // Kelimeleri kategorilere ayır
@@ -117,26 +114,11 @@ export default function LearnPage() {
     }
   };
 
-  const handleSkip = (wordId: number) => {
-    const word = words.find(w => w.id === wordId);
-    if (!word) return;
-
-    // Bilmiyorum kelimelerini ayrı takip et
-    setSkipWords([...skipWords, word]);
-    
-    // Sonraki karta geç
-    if (currentIndex < words.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      handleRoundComplete();
-    }
-  };
-
   const saveLevelProgress = async (completed: boolean) => {
     if (!user) return;
-    
+
     try {
-      await fetch('/api/level-progress', {
+      const response = await fetch('/api/level-progress', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,20 +130,30 @@ export default function LearnPage() {
           completed,
         }),
       });
+
+      if (response.ok) {
+        console.log('Seviye ilerlemesi başarıyla kaydedildi:', { level: level.toUpperCase(), completed, score: totalScore });
+      }
+
+      return response.ok;
     } catch (error) {
       console.error('Seviye ilerlemesi kaydedilirken hata:', error);
+      return false;
     }
   };
 
   const handleRoundComplete = () => {
+    const PASSING_SCORE = 700; // Geçme puanı
+    const hasPassingScore = totalScore >= PASSING_SCORE;
+
     // Bilmiyorum kelimeleri ÖNE çıkmalı, sonra yanlış kelimeler
     const skipWordsArray = Array.from(skipWords);
     const incorrectWordsArray = Array.from(incorrectWords);
-    
+
     // Duplikatları temizle (bir kelime hem skipWords hem incorrectWords'te olabilir)
     const seenIds = new Set<number>();
     const wordsToRetry: Word[] = [];
-    
+
     // Bilmiyorum kelimeleri önce ekle (ÖNE)
     for (const word of skipWordsArray) {
       if (!seenIds.has(word.id)) {
@@ -169,7 +161,7 @@ export default function LearnPage() {
         seenIds.add(word.id);
       }
     }
-    
+
     // Yanlış kelimeleri sonra ekle
     for (const word of incorrectWordsArray) {
       if (!seenIds.has(word.id)) {
@@ -177,9 +169,18 @@ export default function LearnPage() {
         seenIds.add(word.id);
       }
     }
-    
-    if (wordsToRetry.length > 0) {
-      // Hala yanlış veya bilmiyorum kelimeler var, tekrar göster
+
+    // 700 puan ve üzeri: Kullanıcı seviyeyi geçebilir
+    if (hasPassingScore && wordsToRetry.length === 0) {
+      // 700+ puan ve tüm kelimeler doğru - Mükemmel!
+      setIsComplete(true);
+      saveLevelProgress(true); // Geçti
+    } else if (hasPassingScore && wordsToRetry.length > 0) {
+      // 700+ puan ama bazı kelimeler yanlış/bilmiyorum - Geçti ama mükemmel değil
+      setIsComplete(true);
+      saveLevelProgress(true); // Geçti
+    } else if (wordsToRetry.length > 0) {
+      // 700 puanın altında ve yanlış/bilmiyorum var - Tekrar göster
       setWords([...wordsToRetry]);
       setCurrentIndex(0);
       setIncorrectWords([]);
@@ -187,9 +188,9 @@ export default function LearnPage() {
       setRetryWords([]);
       setIsRetryMode(true);
     } else {
-      // Tüm kelimeler doğru cevaplandı - Seviye tamamlandı!
+      // 700 puanın altında ama tüm kelimeler doğru - Seviye tamamlandı ama geçemedi
       setIsComplete(true);
-      saveLevelProgress(true);
+      saveLevelProgress(false); // Geçemedi
     }
   };
 
@@ -201,25 +202,16 @@ export default function LearnPage() {
     setRetryCorrectWords([]);
     setSkipWords([]);
     setTotalScore(0);
-    setCurrentScore(0);
     setIsComplete(false);
     setIsRetryMode(false);
-    setInitialIncorrectCount(0);
     setWords(allWords);
   };
 
-  const handleRetryIncorrect = () => {
-    // Yanlış kartları tekrar göster
-    console.log('Tekrar modu başlatılıyor. Yanlış kartlar:', incorrectWords);
-    setInitialIncorrectCount(incorrectWords.length);
-    setCurrentIndex(0);
-    setIsComplete(false);
-    setIsRetryMode(true);
-    setRetryCorrectWords([]);
-  };
 
   const handleBackToHome = () => {
+    // Ana sayfaya geri dön ve ilerleme bilgisini yenile
     router.push('/');
+    router.refresh(); // Sayfayı yenile
   };
 
   const getNextLevel = (currentLevel: string) => {
@@ -231,12 +223,18 @@ export default function LearnPage() {
     }
   };
 
-  const handleNextLevel = () => {
+  const handleNextLevel = async () => {
     const nextLevel = getNextLevel(level);
     if (nextLevel) {
-      router.push(`/learn/${nextLevel}`);
+      // Seviye ilerlemesinin kaydedildiğinden emin ol
+      await saveLevelProgress(true);
+      // Kısa bir gecikme ekle ki API isteği tamamlansın
+      setTimeout(() => {
+        router.push(`/learn/${nextLevel}`);
+      }, 100);
     } else {
       router.push('/');
+      router.refresh();
     }
   };
 
@@ -270,7 +268,9 @@ export default function LearnPage() {
   if (isComplete) {
     const totalWords = allWords.length;
     const nextLevel = getNextLevel(level);
-    
+    const PASSING_SCORE = 700;
+    const hasPassed = totalScore >= PASSING_SCORE;
+
     return (
       <div className="h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800 p-4">
         <motion.div
@@ -278,32 +278,65 @@ export default function LearnPage() {
           animate={{ scale: 1, opacity: 1 }}
           className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-lg w-full text-center max-h-[95vh] overflow-y-auto"
         >
-          <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6">🏆</div>
+          <div className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6">
+            {hasPassed ? '🏆' : '📚'}
+          </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Tebrikler! 🎉
+            {hasPassed ? 'Tebrikler! 🎉' : 'Seviye Tamamlandı'}
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6">
-            {level.toUpperCase()} seviyesini başarıyla tamamladınız!
+            {level.toUpperCase()} seviyesi {hasPassed ? 'başarıyla' : ''} tamamlandı
           </p>
 
-          <div className="mb-6 p-4 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border-2 border-green-300 dark:border-green-700">
-            <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-              ✨ Mükemmel! ✨
+          {/* Sonraki Seviye Butonu - Sadece 700+ puan varsa */}
+          {nextLevel && hasPassed && (
+            <div className="mb-6 animate-bounce">
+              <button
+                onClick={handleNextLevel}
+                className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white text-lg sm:text-xl font-bold rounded-2xl transition-all transform hover:scale-105 shadow-2xl border-4 border-green-300 dark:border-green-700"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-2xl">🎯</span>
+                  <span>{nextLevel} Seviyesine Geç</span>
+                  <span className="text-2xl">→</span>
+                </div>
+              </button>
             </div>
-            <div className="text-sm sm:text-base text-green-700 dark:text-green-300 mb-3">
-              Tüm {totalWords} kelimeyi doğru cevapladınız!
+          )}
+
+          {/* Puan Durumu */}
+          {hasPassed ? (
+            <div className="mb-6 p-4 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border-2 border-green-300 dark:border-green-700">
+              <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                ✨ Mükemmel! ✨
+              </div>
+              <div className="text-sm sm:text-base text-green-700 dark:text-green-300 mb-3">
+                {totalScore} puan aldınız! (Geçme puanı: {PASSING_SCORE})
+              </div>
+              {nextLevel && (
+                <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
+                  🚀 {nextLevel} seviyesi şimdi açıldı!
+                </div>
+              )}
+              {!nextLevel && (
+                <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
+                  🌟 Tüm seviyeleri tamamladınız! Harikasınız!
+                </div>
+              )}
             </div>
-            {nextLevel && (
-              <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
-                🚀 Artık {nextLevel} seviyesine geçebilirsiniz!
+          ) : (
+            <div className="mb-6 p-4 sm:p-5 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-2xl border-2 border-orange-300 dark:border-orange-700">
+              <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 mb-2">
+                ⚠️ Seviyeyi Geçemediniz
               </div>
-            )}
-            {!nextLevel && (
-              <div className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
-                🌟 Tüm seviyeleri tamamladınız! Harikasınız!
+              <div className="text-sm sm:text-base text-orange-700 dark:text-orange-300 mb-3">
+                {totalScore} / {PASSING_SCORE} puan aldınız
               </div>
-            )}
-          </div>
+              <div className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 font-semibold bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 sm:p-3">
+                💪 Tekrar deneyin ve {PASSING_SCORE} puanı geçin!
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 sm:p-4 md:p-5">
@@ -320,29 +353,19 @@ export default function LearnPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:gap-3">
-            {nextLevel && (
-              <button
-                onClick={handleNextLevel}
-                className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-base sm:text-lg font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg"
-              >
-                🎯 {nextLevel} Seviyesine Geç →
-              </button>
-            )}
-            <div className="flex gap-2 sm:gap-3">
-              <button
-                onClick={handleRestart}
-                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
-              >
-                🔄 Tekrar Çöz
-              </button>
-              <button
-                onClick={handleBackToHome}
-                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
-              >
-                🏠 Ana Sayfa
-              </button>
-            </div>
+          <div className="flex gap-2 sm:gap-3">
+            <button
+              onClick={handleRestart}
+              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
+            >
+              🔄 Tekrar Çöz
+            </button>
+            <button
+              onClick={handleBackToHome}
+              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm sm:text-base font-semibold rounded-lg transition-colors"
+            >
+              🏠 Ana Sayfa
+            </button>
           </div>
         </motion.div>
       </div>
@@ -375,10 +398,10 @@ export default function LearnPage() {
 
         <div className="max-w-2xl mx-auto">
           <ProgressBar
-            current={currentIndex + 1}
+            current={isRetryMode ? retryCorrectWords.length : correctWords.length}
             total={words.length}
             correct={isRetryMode ? retryCorrectWords.length : correctWords.length}
-            incorrect={incorrectWords.length}
+            incorrect={incorrectWords.length + skipWords.length}
             score={totalScore}
           />
         </div>
@@ -398,11 +421,9 @@ export default function LearnPage() {
                   key={`${isRetryMode ? 'retry' : 'normal'}-${word.id}-${currentIndex}`}
                   word={word}
                   onAnswer={handleAnswer}
-                  onSkip={handleSkip}
                   style={{
                     zIndex: words.length - actualIndex,
-                    scale,
-                    y: offset,
+                    transform: `scale(${scale}) translateY(${offset}px)`,
                   }}
                 />
               );

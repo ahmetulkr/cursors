@@ -56,6 +56,31 @@ export default function Home() {
     }
   }, [user, isLoading, router]);
 
+  // Sayfa görünür olduğunda ilerleme bilgisini yeniden yükle
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        fetchLevelProgress();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Sayfa her odaklandığında da yeniden yükle
+    const handleFocus = () => {
+      if (user) {
+        fetchLevelProgress();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user]);
+
   const fetchLevelProgress = async () => {
     if (!user) return;
 

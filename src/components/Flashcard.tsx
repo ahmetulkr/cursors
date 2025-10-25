@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Word {
@@ -13,14 +13,12 @@ interface Word {
 interface FlashcardProps {
   word: Word;
   onAnswer: (wordId: number, isCorrect: boolean, userAnswer?: string) => void;
-  onSkip: (wordId: number) => void;
   style?: React.CSSProperties;
 }
 
-export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardProps) {
+export default function Flashcard({ word, onAnswer, style }: FlashcardProps) {
   const [showFront, setShowFront] = useState(Math.random() > 0.5); // Rastgele TR veya EN
   const [userAnswer, setUserAnswer] = useState('');
-  const [showAnswer, setShowAnswer] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
@@ -38,7 +36,6 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
     
     // Sadece doğru cevap verildiğinde sonucu göster
     if (isAnswerCorrect) {
-      setShowAnswer(true);
       setShowResult(true);
       setScore(100);
     } else {
@@ -49,7 +46,6 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
   };
 
   const handleSkip = () => {
-    setShowAnswer(true);
     setShowResult(true);
     setScore(0);
     setIsCorrect(false); // Bilmiyorum = boş olarak işaretle
@@ -61,7 +57,6 @@ export default function Flashcard({ word, onAnswer, onSkip, style }: FlashcardPr
     onAnswer(word.id, isCorrect, userAnswer);
     // Reset for next card
     setUserAnswer('');
-    setShowAnswer(false);
     setShowResult(false);
     setIsCorrect(false);
     setScore(0);
